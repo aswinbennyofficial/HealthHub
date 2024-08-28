@@ -36,7 +36,6 @@ func main() {
 
 	// make a route to get index.html on root
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		
 
 		http.ServeFile(w, r, "static/index.html")
 	})
@@ -53,9 +52,38 @@ func main() {
 		getSummary(accessToken,w)
 	})
 
+	// make a route to get Lifetime stats
+	http.HandleFunc("/api/lifetime", func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("jwt")
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		accessToken := cookie.Value
+		getLifetimeStats(accessToken,w)
+	})
+
+
+	// route to fetch cardio fitness score for the past 30 days
+	http.HandleFunc("/api/cardio", func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("jwt")
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		accessToken := cookie.Value
+		getCardioFitnessScore(accessToken,w)
+	})
+
 	fmt.Println("Server is running on http://localhost:8080")
 	fmt.Println("Visit http://localhost:8080/auth to start the OAuth2 flow")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		fmt.Printf("Error starting server: %v\n", err)
 	}
+
+
+	
+
 }

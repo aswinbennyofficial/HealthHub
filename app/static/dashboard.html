@@ -11,15 +11,12 @@
 <body>
     <div class="navbar bg-base-100">
         <div class="flex-1">
-            <a class="btn btn-ghost normal-case text-xl">Activity Dashboard</a>
-        </div>
-        <div class="flex-none">
-            <button class="btn btn-primary" onclick="fetchSummary()">Fetch Summary</button>
+            <a class="btn btn-ghost normal-case text-xl">Fitapp</a>
         </div>
     </div>
 
     <div class="container mx-auto p-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="card bg-base-100 shadow-xl">
                 <div class="card-body">
                     <h2 class="card-title">Goals</h2>
@@ -31,15 +28,25 @@
             </div>
             <div class="card bg-base-100 shadow-xl">
                 <div class="card-body">
-                    <h2 class="card-title">Summary</h2>
+                    <h2 class="card-title">Summary Today</h2>
                     <p>Steps: <span id="summarySteps"></span></p>
                     <p>Calories Out: <span id="summaryCaloriesOut"></span></p>
                     <p>Active Score: <span id="summaryActiveScore"></span></p>
                     <p>BMR Calories: <span id="summaryCaloriesBMR"></span></p>
                 </div>
             </div>
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Lifetime Stats</h2>
+                    <p>Total Steps: <span id="lifetimeSteps"></span></p>
+                    <p>Total Distance: <span id="lifetimeDistance"></span> km</p>
+                    <p>Total Calories Out: <span id="lifetimeCaloriesOut"></span></p>
+                    <p>Total Active Score: <span id="lifetimeActiveScore"></span></p>
+                </div>
+            </div>
         </div>
-        <div class="mt-4">
+
+        <div class="mt-4" style="max-width: 600px; margin: 10px auto;">
             <div class="card bg-base-100 shadow-xl">
                 <div class="card-body">
                     <h2 class="card-title">Activity Minutes</h2>
@@ -50,6 +57,11 @@
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchSummary();
+            fetchLifetimeStats();
+        });
+
         let activityChart;
 
         function fetchSummary() {
@@ -59,9 +71,14 @@
                 .catch(error => console.error('Error:', error));
         }
 
-        function updateDashboard(data) {
+        function fetchLifetimeStats() {
+            fetch('/api/lifetime')
+                .then(response => response.json())
+                .then(data => updateLifetimeStats(data))
+                .catch(error => console.error('Error:', error));
+        }
 
-            
+        function updateDashboard(data) {
             // Update Goals
             document.getElementById('goalActiveMinutes').textContent = data.goals.activeMinutes;
             document.getElementById('goalCaloriesOut').textContent = data.goals.caloriesOut;
@@ -76,6 +93,13 @@
 
             // Update Chart
             updateActivityChart(data.summary);
+        }
+
+        function updateLifetimeStats(data) {
+            document.getElementById('lifetimeSteps').textContent = data.lifetime.total.steps;
+            document.getElementById('lifetimeDistance').textContent = data.lifetime.total.distance.toFixed(2);
+            document.getElementById('lifetimeCaloriesOut').textContent = data.lifetime.total.caloriesOut;
+            document.getElementById('lifetimeActiveScore').textContent = data.lifetime.total.activeScore;
         }
 
         function updateActivityChart(summary) {
