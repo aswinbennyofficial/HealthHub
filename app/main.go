@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 )
 
 const (
@@ -25,74 +23,39 @@ func main() {
 
 	http.HandleFunc("/callback", handleCallback)
 
+	http.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
+		_, err := r.Cookie("jwt")
+		if err != nil {
+			http.Redirect(w, r, "/auth", http.StatusSeeOther)
+			return
+		}
+
+		// serve dashboard.html from the static directory
+		http.ServeFile(w, r, "static/dashboard.html")
+	})
+
+	// make a route to get index.html on root
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		
+
+		http.ServeFile(w, r, "static/index.html")
+	})
+
+	// make a route to get summary data
+	http.HandleFunc("/api/summary", func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("jwt")
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		accessToken := cookie.Value
+		getSummary(accessToken,w)
+	})
+
 	fmt.Println("Server is running on http://localhost:8080")
 	fmt.Println("Visit http://localhost:8080/auth to start the OAuth2 flow")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		fmt.Printf("Error starting server: %v\n", err)
 	}
 }
-
-func handleCallback(w http.ResponseWriter, r *http.Request) {
-	authCode := r.URL.Query().Get("code")
-	fmt.Println("Auth Code:", authCode)
-
-	tokenResp, err := exchangeToken(authCode)
-	if err != nil {
-		fmt.Fprintf(w, "Error exchanging token: %v", err)
-		return
-	}
-
-	fmt.Fprintf(w, "Access Token: %s\nRefresh Token: %s", tokenResp.AccessToken, tokenResp.RefreshToken)
-
-	// set cookie as jwt token
-	http.SetCookie(w, &http.Cookie{
-		Name:  "jwt",
-		Value: tokenResp.AccessToken,
-		Path: "/",
-	})
-
-	http.Redirect(w, r, "/", http.StatusSeeOther)
-}
-
-func exchangeToken(authCode string) (*FitbitTokenResponse, error) {
-	reqBody := url.Values{
-		"grant_type":    {"authorization_code"},
-		"code":          {authCode},
-		"redirect_uri":  {redirectURI},
-		"client_id":     {clientID},
-		"code_verifier": {codeVerifier},
-	}
-
-	req, err := http.NewRequest("POST", fitbitTokenURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
-	}
-
-	req.SetBasicAuth(clientID, clientSecret)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.URL.RawQuery = reqBody.Encode()
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error sending request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	var tokenResp FitbitTokenResponse
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
-	}
-
-	return &tokenResp, nil
-}
-
-type FitbitTokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-}
-
-
