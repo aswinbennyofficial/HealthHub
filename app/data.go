@@ -104,11 +104,10 @@ func getLifetimeStats(accessToken string, w http.ResponseWriter) {
 }
 
 func getCardioFitnessScore(accessToken string, w http.ResponseWriter) {
-    // Calculate the date 30 days ago
-    thirtyDaysAgo := time.Now().AddDate(0, 0, -15).Format("2006-01-02")
+   
     today := time.Now().Format("2006-01-02")
 
-    cardioFitnessScoreURL := fmt.Sprintf("https://api.fitbit.com/1/user/-/activities/cardio/minutesVeryActive/date/%s/%s.json", thirtyDaysAgo, today)
+    cardioFitnessScoreURL := fmt.Sprintf("https://api.fitbit.com/1/user/-/activities/cardio/minutesVeryActive/date/%s.json", today)
     
     req, err := http.NewRequest("GET", cardioFitnessScoreURL, nil)
     if err != nil {
@@ -142,4 +141,50 @@ func getCardioFitnessScore(accessToken string, w http.ResponseWriter) {
         http.Error(w, fmt.Sprintf("error encoding response: %v", err), http.StatusInternalServerError)
         return
     }
+}
+
+func getHRVSummary(accessToken string, w http.ResponseWriter) {
+	// Calculate the date 30 days ago
+	today := time.Now().Format("2006-01-02")
+
+	hrvSummaryURL := fmt.Sprintf("https://api.fitbit.com/1/user/-/activities/hrv/date/%s.json", today)
+	
+	req, err := http.NewRequest("GET", hrvSummaryURL, nil)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error creating request: %v", err), http.StatusInternalServerError)
+		return
+	}
+	
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+	
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error sending request: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		http.Error(w, fmt.Sprintf("%s", resp.Body), resp.StatusCode)
+		return
+	}
+	
+	var hrvSummary map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&hrvSummary); err != nil {
+		http.Error(w, fmt.Sprintf("error decoding response: %v", err), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(hrvSummary); err != nil {
+		http.Error(w, fmt.Sprintf("error encoding response: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
+
+func getSP02(accessToken string, w http.ResponseWriter){
+	// today := time.Now().Format("2006-01-02")
+
+	// sp
 }

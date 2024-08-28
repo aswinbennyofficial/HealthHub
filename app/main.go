@@ -77,6 +77,19 @@ func main() {
 		getCardioFitnessScore(accessToken,w)
 	})
 
+
+	// get hrv data
+	http.HandleFunc("/api/hrv", func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("jwt")
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		accessToken := cookie.Value
+		getHRVSummary(accessToken,w)
+	})
+
 	fmt.Println("Server is running on http://localhost:8080")
 	fmt.Println("Visit http://localhost:8080/auth to start the OAuth2 flow")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
